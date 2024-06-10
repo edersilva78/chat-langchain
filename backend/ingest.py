@@ -36,6 +36,33 @@ def metadata_extractor(meta: dict, soup: BeautifulSoup) -> dict:
         **meta,
     }
 
+def load_im_docs():
+    return SitemapLoader(
+        "https://institutomix.com.br/sitemap.xml",
+        filter_urls=["https://institutomix.com.br/"],
+        parsing_function=langchain_docs_extractor,
+        default_parser="lxml",
+        bs_kwargs={
+            "parse_only": SoupStrainer(
+                name=("article", "title", "html", "lang", "content")
+            ),
+        },
+        meta_function=metadata_extractor,
+    ).load()
+
+def load_imbot_docs():
+    return SitemapLoader(
+        "https://imbot.com.br/wp-sitemap.xml",
+        filter_urls=["https://imbot.com.br/"],
+        parsing_function=langchain_docs_extractor,
+        default_parser="lxml",
+        bs_kwargs={
+            "parse_only": SoupStrainer(
+                name=("article", "title", "html", "lang", "content")
+            ),
+        },
+        meta_function=metadata_extractor,
+    ).load()
 
 def load_langchain_docs():
     return SitemapLoader(
@@ -121,15 +148,19 @@ def ingest_docs():
     )
     record_manager.create_schema()
 
-    docs_from_documentation = load_langchain_docs()
-    logger.info(f"Loaded {len(docs_from_documentation)} docs from documentation")
-    docs_from_api = load_api_docs()
-    logger.info(f"Loaded {len(docs_from_api)} docs from API")
-    docs_from_langsmith = load_langsmith_docs()
-    logger.info(f"Loaded {len(docs_from_langsmith)} docs from Langsmith")
+    docs_from_im_site = load_im_docs()
+    logger.info(f"Loaded {len(docs_from_im_site)} docs from im site")
+    docs_from_imbot_site = load_imbot_docs()
+    logger.info(f"Loaded {len(docs_from_imbot_site)} docs from im site")
+    # docs_from_documentation = load_langchain_docs()
+    # logger.info(f"Loaded {len(docs_from_documentation)} docs from documentation")
+    # docs_from_api = load_api_docs()
+    # logger.info(f"Loaded {len(docs_from_api)} docs from API")
+    # docs_from_langsmith = load_langsmith_docs()
+    # logger.info(f"Loaded {len(docs_from_langsmith)} docs from Langsmith")
 
     docs_transformed = text_splitter.split_documents(
-        docs_from_documentation + docs_from_api + docs_from_langsmith
+        docs_from_im_site + docs_from_imbot_site
     )
     docs_transformed = [doc for doc in docs_transformed if len(doc.page_content) > 10]
 
